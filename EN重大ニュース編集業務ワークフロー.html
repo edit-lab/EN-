@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EN重大ニュース 編集業務ワークフロー</title>
+    <!-- Google Fonts の読み込み -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Mermaid.js（フロー図描画ライブラリ）の読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            /* カラーパレット */
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --bg-color: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --border-color: #e2e8f0;
+            --success: #10b981;
+        }
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        h1 {
+            text-align: center;
+            color: var(--primary);
+            font-size: 2.2rem;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+        h2 {
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 10px;
+            margin-top: 40px;
+            color: var(--text-main);
+            font-size: 1.4rem;
+        }
+        
+        /* 進捗トラッカー */
+        .progress-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 35px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+        }
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .progress-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .progress-title svg {
+            width: 24px;
+            height: 24px;
+            color: var(--primary);
+        }
+        .progress-percentage {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .progress-bar-bg {
+            background: #e2e8f0;
+            height: 16px;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 100%;
+        }
+        .progress-bar-fill {
+            background: linear-gradient(90deg, var(--primary) 0%, #60a5fa 100%);
+            height: 100%;
+            width: 0%;
+            border-radius: 8px;
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 関係者一覧（カードスタイル） */
+        .stakeholders {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .role-card {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 15px 20px;
+            flex: 1 1 calc(33.333% - 15px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+            transition: transform 0.2s, box-shadow 0.2s;
+            min-width: 200px;
+        }
+        .role-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(37, 99, 235, 0.1);
+            border-color: var(--primary);
+        }
+        .role-title {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .role-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        
+        /* スケジュール表 */
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 20px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border-color);
+        }
+        th, td {
+            padding: 15px 20px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        th {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 700;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr {
+            transition: background 0.3s, color 0.3s;
+        }
+        tr:hover {
+            background: #f8fafc;
+        }
+        td strong {
+            color: var(--primary);
+        }
+        
+        /* チェックボックスと完了状態 */
+        .checkbox-cell {
+            width: 50px;
+            text-align: center;
+        }
+        .status-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+        tr.completed {
+            background: #f8fafc;
+        }
+        tr.completed td {
+            color: var(--text-muted);
+        }
+        tr.completed td:not(.checkbox-cell) {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        tr.completed td strong {
+            color: var(--text-muted);
+        }
+        
+        /* フロー図エリア */
+        .mermaid-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+            border: 1px solid var(--border-color);
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .highlight {
+            background: #fff7ed;
+            font-weight: 700;
+        }
+        .highlight strong {
+            color: #ea580c;
+        }
+
+        /* リセットボタン */
+        .reset-btn {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .reset-btn:hover {
+            background: #fee2e2;
+            color: #ef4444;
+            border-color: #fca5a5;
+        }
+
+        /* アクションボタン */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 22px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+        }
+        .action-bar {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            .role-card {
+                flex: 1 1 100%;
+            }
+            th, td {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>EN重大ニュース 編集業務ワークフロー</h1>
+
+        <!-- アクションバー（リンク集） -->
+        <div class="action-bar">
+            <a href="https://docs.google.com/spreadsheets/d/1u-52xU-ZgmYl_Rpy26IrGz61tDYjubJW?rtpof=true&usp=drive_fs" target="_blank" class="btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" style="width: 20px; height: 20px; margin-right: 8px;">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9zm3.75 11.625a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+                台割のExcel（スプレッドシート）を開く
+            </a>
+        </div>
+
+        <!-- 進捗トラッカー -->
+        <div class="progress-container">
+            <div class="progress-header">
+                <div class="progress-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    全体の進行状況
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <button class="reset-btn" id="reset-btn">進捗をリセット</button>
+                    <div class="progress-percentage" id="progress-text-value">0%</div>
+                </div>
+            </div>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="progress-bar-fill"></div>
+            </div>
+        </div>
+
+        <h2>1. 関係者一覧</h2>
+        <div class="stakeholders">
+            <div class="role-card">
+                <div class="role-title">依頼元</div>
+                <div class="role-name">EN</div>
+            </div>
+            <div class="role-card">
+                <div class="role-title">依頼元の上司</div>
+                <div class="role-name">栄光</div>
+            </div>
+            <div class="role-card">
+                <div class="role-title">ENと弊社の仲介</div>
+                <div class="role-name">新後閑</div>
+            </div>
+            <div class="role-card">
+                <div class="role-title">制作進行・編集</div>
+                <div class="role-name">弊社（TKM合同会社）</div>
+            </div>
+            <div class="role-card">
+                <div class="role-title">外部スタッフ</div>
+                <div class="role-name">執筆者、校正者</div>
+            </div>
+        </div>
+
+        <h2>2. 進行チェックリスト（1月〜10月）</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th class="checkbox-cell">完了</th>
+                    <th>時期</th>
+                    <th>業務内容</th>
+                    <th>メイン担当・やり取り</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="row-task-1">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-1"></td>
+                    <td><strong>1月～7月</strong></td>
+                    <td>ネタ集め</td>
+                    <td>弊社</td>
+                </tr>
+                <tr id="row-task-2">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-2"></td>
+                    <td><strong>3月</strong></td>
+                    <td>依頼があるかどうかの打診</td>
+                    <td>弊社 → EN・新後閑</td>
+                </tr>
+                <tr id="row-task-3">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-3"></td>
+                    <td><strong>4月～5月</strong></td>
+                    <td>執筆者・校正者へ打診</td>
+                    <td>弊社 → 執筆者・校正者</td>
+                </tr>
+                <tr id="row-task-4">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-4"></td>
+                    <td><strong>5月上旬</strong></td>
+                    <td>台割案作成 <a href="https://docs.google.com/spreadsheets/d/1u-52xU-ZgmYl_Rpy26IrGz61tDYjubJW?rtpof=true&usp=drive_fs" target="_blank" style="margin-left:8px; font-size:0.85em; color:var(--primary); text-decoration:none;">[🔗Excel]</a></td>
+                    <td>弊社</td>
+                </tr>
+                <tr id="row-task-5">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-5"></td>
+                    <td><strong>5月中旬～6月頭</strong></td>
+                    <td>栄光の意見聴取 → 台割案修正 <a href="https://docs.google.com/spreadsheets/d/1u-52xU-ZgmYl_Rpy26IrGz61tDYjubJW?rtpof=true&usp=drive_fs" target="_blank" style="margin-left:8px; font-size:0.85em; color:var(--primary); text-decoration:none;">[🔗Excel]</a></td>
+                    <td>弊社 ⇄ 栄光</td>
+                </tr>
+                <tr id="row-task-6">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-6"></td>
+                    <td><strong>5月下旬</strong></td>
+                    <td>初めての執筆者とのMTG</td>
+                    <td>弊社、新規執筆者</td>
+                </tr>
+                <tr id="row-task-7">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-7"></td>
+                    <td><strong>6月上旬～中旬</strong></td>
+                    <td>台割確定、執筆者へ着手依頼 <a href="https://docs.google.com/spreadsheets/d/1u-52xU-ZgmYl_Rpy26IrGz61tDYjubJW?rtpof=true&usp=drive_fs" target="_blank" style="margin-left:8px; font-size:0.85em; color:var(--primary); text-decoration:none;">[🔗Excel]</a></td>
+                    <td>弊社 → 執筆者</td>
+                </tr>
+                <tr id="row-task-8">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-8"></td>
+                    <td><strong>7月中旬</strong></td>
+                    <td>原稿受領、社内担当者からFB → 修正</td>
+                    <td>執筆者 ⇄ 弊社</td>
+                </tr>
+                <tr id="row-task-9">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-9"></td>
+                    <td><strong>7/23～7/30</strong></td>
+                    <td>ENへ草案提出</td>
+                    <td>弊社 → EN</td>
+                </tr>
+                <tr id="row-task-10">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-10"></td>
+                    <td><strong>7/30～8/3</strong></td>
+                    <td>ENから外部校正結果の受領</td>
+                    <td>EN → 弊社</td>
+                </tr>
+                <tr id="row-task-11">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-11"></td>
+                    <td><strong>7/30～8/4</strong></td>
+                    <td>修正原稿で入稿</td>
+                    <td>弊社</td>
+                </tr>
+                <tr id="row-task-12">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-12"></td>
+                    <td><strong>8/17～8/20</strong></td>
+                    <td>初校アップ</td>
+                    <td>新後閑 → 弊社</td>
+                </tr>
+                <tr id="row-task-13">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-13"></td>
+                    <td><strong>8/17～8/20</strong></td>
+                    <td>初校に対するFB受領 → 加筆・修正</td>
+                    <td>栄光 → 弊社</td>
+                </tr>
+                <tr id="row-task-14">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-14"></td>
+                    <td><strong>8/26</strong></td>
+                    <td>初校戻し、不足分の原稿入稿</td>
+                    <td>弊社</td>
+                </tr>
+                <tr id="row-task-15">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-15"></td>
+                    <td><strong>9/2</strong></td>
+                    <td>再校アップ</td>
+                    <td>新後閑 → 弊社</td>
+                </tr>
+                <tr id="row-task-16">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-16"></td>
+                    <td><strong>9/14</strong></td>
+                    <td>再校FB、校正結果の受領（栄光/社内/EN）</td>
+                    <td>各所 → 弊社</td>
+                </tr>
+                <tr id="row-task-17">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-17"></td>
+                    <td><strong>9/24</strong></td>
+                    <td>再校戻し</td>
+                    <td>弊社</td>
+                </tr>
+                <tr id="row-task-18">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-18"></td>
+                    <td><strong>10/1</strong></td>
+                    <td>三校出し</td>
+                    <td>新後閑？ → 弊社</td>
+                </tr>
+                <tr id="row-task-19">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-19"></td>
+                    <td><strong>10/1～10/3</strong></td>
+                    <td>三校に対するFB受領</td>
+                    <td>EN、栄光 → 弊社</td>
+                </tr>
+                <tr id="row-task-20">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-20"></td>
+                    <td><strong>10/5</strong></td>
+                    <td>三校戻し</td>
+                    <td>弊社</td>
+                </tr>
+                <tr id="row-task-21">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-21"></td>
+                    <td><strong>10/7</strong></td>
+                    <td>四校（念校）出し</td>
+                    <td>新後閑？ → 弊社</td>
+                </tr>
+                <tr id="row-task-22" class="highlight">
+                    <td class="checkbox-cell"><input type="checkbox" class="status-checkbox" data-id="task-22"></td>
+                    <td><strong>10/9</strong></td>
+                    <td>校了</td>
+                    <td>全体</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>3. 入稿〜校了のワークフロー図（8月〜10月）</h2>
+        <div class="mermaid-container">
+            <div class="mermaid">
+                graph TD
+                    Submit[7/30～8/4: 修正原稿入稿]
+                    Proof1[8/17～8/20: 新後閑より初校アップ]
+                    FB1[8/17～8/20: 栄光から初校FB受領・加筆修正]
+                    Return1[8/26: 初校戻し・不足分原稿入稿]
+                    
+                    Proof2[9/2: 再校アップ]
+                    FB2[9/14: 再校FB・校正結果受領 &lt;br/&gt; EN / 栄光 / 社内校正者]
+                    Return2[9/24: 再校戻し]
+                    
+                    Proof3[10/1: 三校出し]
+                    FB3[10/1～10/3: EN・栄光から三校FB受領]
+                    Return3[10/5: 三校戻し]
+                    
+                    Proof4[10/7: 四校（念校）出し]
+                    Finish((10/9: 校了))
+
+                    Submit --> Proof1 --> FB1 --> Return1
+                    Return1 --> Proof2 --> FB2 --> Return2
+                    Return2 --> Proof3 --> FB3 --> Return3
+                    Return3 --> Proof4 --> Finish
+                    
+                    classDef default fill:#f9f9f9,stroke:#94a3b8,stroke-width:1px,color:#1e293b;
+                    classDef highlight fill:#eff6ff,stroke:#3b82f6,stroke-width:2px;
+                    classDef milestone fill:#fff7ed,stroke:#f97316,stroke-width:2px,color:#c2410c;
+                    
+                    class Submit,Return1,Return2,Return3 highlight;
+                    class Finish milestone;
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Mermaid.jsの初期化設定
+        mermaid.initialize({ 
+            startOnLoad: true, 
+            theme: 'base', 
+            themeVariables: {
+                fontFamily: 'Noto Sans JP, sans-serif'
+            } 
+        });
+
+        // --- 進捗管理（チェックボックスとプログレスバー）の処理 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const checkboxes = document.querySelectorAll('.status-checkbox');
+            const progressBarFill = document.getElementById('progress-bar-fill');
+            const progressTextValue = document.getElementById('progress-text-value');
+            const resetBtn = document.getElementById('reset-btn');
+            
+            const STORAGE_KEY = 'en_news_workflow_progress';
+            
+            // ローカルストレージから保存された状態を読み込む
+            const savedState = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+            
+            // プログレスバーとテキストを更新する関数
+            function updateProgress() {
+                const total = checkboxes.length;
+                const completed = document.querySelectorAll('.status-checkbox:checked').length;
+                const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+                
+                progressBarFill.style.width = percentage + '%';
+                progressTextValue.textContent = percentage + '%';
+            }
+
+            // 行のスタイル（完了・未完了）を更新する関数
+            function updateRowStyle(cb) {
+                const id = cb.getAttribute('data-id');
+                const row = document.getElementById('row-' + id);
+                if (cb.checked) {
+                    row.classList.add('completed');
+                } else {
+                    row.classList.remove('completed');
+                }
+            }
+            
+            // 初期化ループ
+            checkboxes.forEach(cb => {
+                const id = cb.getAttribute('data-id');
+                
+                // 保存された状態を適用
+                if (savedState[id]) {
+                    cb.checked = true;
+                }
+                updateRowStyle(cb);
+                
+                // チェック状態が変わったときのイベントリスナー
+                cb.addEventListener('change', (e) => {
+                    updateRowStyle(e.target);
+                    
+                    // 状態を保存
+                    savedState[id] = e.target.checked;
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(savedState));
+                    
+                    // 進捗を更新
+                    updateProgress();
+                });
+            });
+
+            // リセットボタンの処理
+            resetBtn.addEventListener('click', () => {
+                if(confirm('進捗状況をすべてリセットしますか？')) {
+                    checkboxes.forEach(cb => {
+                        cb.checked = false;
+                        updateRowStyle(cb);
+                        savedState[cb.getAttribute('data-id')] = false;
+                    });
+                    localStorage.removeItem(STORAGE_KEY);
+                    updateProgress();
+                }
+            });
+            
+            // 初期表示時の進捗バー更新
+            updateProgress();
+        });
+    </script>
+</body>
+</html>
